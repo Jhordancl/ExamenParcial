@@ -4,6 +4,13 @@ using PlataformaIncidencias.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// ── Soporte para puerto en Render ($PORT) ────────────────────────────────────
+var renderPort = Environment.GetEnvironmentVariable("PORT");
+if (!string.IsNullOrEmpty(renderPort))
+{
+    builder.WebHost.UseUrls($"http://0.0.0.0:{renderPort}");
+}
+
 // ── Base de datos SQLite + EF Core ──────────────────────────────────────────
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
