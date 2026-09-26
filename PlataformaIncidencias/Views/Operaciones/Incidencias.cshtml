@@ -1,65 +1,213 @@
 @model IEnumerable<PlataformaIncidencias.Models.Incidencia>
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 
 @{
     ViewData["Title"] = "Incidencias Abiertas";
+    var channelUrl = Configuration["PieHost:ChannelUrl"] ?? "";
+    var channelKey = Configuration["PieHost:ChannelKey"] ?? "";
 }
 
 <div class="container mt-4">
-    <h1>Incidencias abiertas</h1>
-    <p class="text-muted">Listado de averías activas en estaciones de bicicletas compartidas.</p>
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h1>Incidencias abiertas en tiempo real</h1>
+        <span id="ws-status" class="badge bg-secondary">
+            <span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>
+            Conectando WebSocket...
+        </span>
+    </div>
+    <p class="text-muted">Averías activas en estaciones con sincronización en tiempo real vía PieHost.</p>
 
-    @if (!Model.Any())
-    {
-        <div class="alert alert-success">
-            <i class="bi bi-check-circle"></i> No hay incidencias abiertas en este momento.
-        </div>
-    }
-    else
-    {
-        <div class="table-responsive">
-            <table class="table table-striped table-hover" id="tabla-incidencias">
-                <thead class="table-dark">
-                    <tr>
-                        <th>#</th>
-                        <th>Estación</th>
-                        <th>Descripción</th>
-                        <th>Prioridad</th>
-                        <th>Fecha</th>
-                        <th>Acción</th>
+    <div id="alerta-vacia" class="alert alert-success @(Model.Any() ? "d-none" : "")">
+        <i class="bi bi-check-circle"></i> No hay incidencias abiertas en este momento.
+    </div>
+
+    <div class="table-responsive @(!Model.Any() ? "d-none" : "")" id="contenedor-tabla">
+        <table class="table table-striped table-hover" id="tabla-incidencias">
+            <thead class="table-dark">
+                <tr>
+                    <th>#</th>
+                    <th>Estación</th>
+                    <th>Descripción</th>
+                    <th>Prioridad</th>
+                    <th>Fecha</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody id="cuerpo-tabla">
+                @foreach (var item in Model)
+                {
+                    <tr id="fila-@item.Id">
+                        <td>@item.Id</td>
+                        <td>@item.Estacion</td>
+                        <td>@item.Descripcion</td>
+                        <td>
+                            @{
+                                var badgeClass = item.Prioridad switch
+                                {
+                                    "Alta" => "danger",
+                                    "Media" => "warning",
+                                    _ => "secondary"
+                                };
+                            }
+                            <span class="badge bg-@badgeClass">@item.Prioridad</span>
+                        </td>
+                        <td>@item.FechaCreacion.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>
+                            <form asp-controller="Operaciones" asp-action="Cerrar" asp-route-id="@item.Id" method="post"
+                                  onsubmit="return confirmarCierre(event, @item.Id)">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    ✕ Cerrar
+                                </button>
+                            </form>
+                        </td>
                     </tr>
-                </thead>
-                <tbody>
-                    @foreach (var item in Model)
-                    {
-                        <tr id="fila-@item.Id">
-                            <td>@item.Id</td>
-                            <td>@item.Estacion</td>
-                            <td>@item.Descripcion</td>
-                            <td>
-                                @{
-                                    var badgeClass = item.Prioridad switch
-                                    {
-                                        "Alta" => "danger",
-                                        "Media" => "warning",
-                                        _ => "secondary"
-                                    };
-                                }
-                                <span class="badge bg-@badgeClass">@item.Prioridad</span>
-                            </td>
-                            <td>@item.FechaCreacion.ToString("dd/MM/yyyy HH:mm")</td>
-                            <td>
-                                <form asp-controller="Operaciones" asp-action="Cerrar" asp-route-id="@item.Id" method="post">
-                                    @Html.AntiForgeryToken()
-                                    <button type="submit" class="btn btn-sm btn-outline-danger"
-                                            onclick="return confirm('¿Cerrar incidencia #@item.Id?')">
-                                        <i class="bi bi-x-circle"></i> Cerrar
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
-    }
+                }
+            </tbody>
+        </table>
+    </div>
 </div>
+
+@section Scripts {
+<script>
+    const pieHostChannelUrl = "@channelUrl";
+    const pieHostApiKey = "@channelKey";
+    let socket = null;
+    let reconnectInterval = 3000;
+
+    function actualizarBadgeStatus(estado, texto, clase) {
+        const badge = document.getElementById("ws-status");
+        if (badge) {
+            badge.className = `badge bg-${clase}`;
+            badge.textContent = texto;
+        }
+    }
+
+    // Consulta el estado vigente del listado sin recargar toda la página (usado al onopen / reconectar)
+    async function refrescarListadoVigente() {
+        try {
+            const resp = await fetch("/Operaciones/ListadoJson");
+            if (!resp.ok) return;
+            const incidencias = await resp.json();
+
+            const tbody = document.getElementById("cuerpo-tabla");
+            const alertVacia = document.getElementById("alerta-vacia");
+            const contenedorTabla = document.getElementById("contenedor-tabla");
+
+            if (incidencias.length === 0) {
+                alertVacia.classList.remove("d-none");
+                contenedorTabla.classList.add("d-none");
+                tbody.innerHTML = "";
+                return;
+            }
+
+            alertVacia.classList.add("d-none");
+            contenedorTabla.classList.remove("d-none");
+
+            let html = "";
+            incidencias.forEach(i => {
+                const badge = i.prioridad === "Alta" ? "danger" : (i.prioridad === "Media" ? "warning" : "secondary");
+                html += `
+                    <tr id="fila-${i.id}">
+                        <td>${i.id}</td>
+                        <td>${escapeHtml(i.estacion)}</td>
+                        <td>${escapeHtml(i.descripcion)}</td>
+                        <td><span class="badge bg-${badge}">${escapeHtml(i.prioridad)}</span></td>
+                        <td>${i.fechaCreacion}</td>
+                        <td>
+                            <form action="/Operaciones/Cerrar/${i.id}" method="post" onsubmit="return confirmarCierre(event, ${i.id})">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">✕ Cerrar</button>
+                            </form>
+                        </td>
+                    </tr>`;
+            });
+            tbody.innerHTML = html;
+            console.log("[PieHost WS] Listado vigente sincronizado tras reconexión:", incidencias.length);
+        } catch (e) {
+            console.error("[PieHost WS] Error al sincronizar listado vigente:", e);
+        }
+    }
+
+    function escapeHtml(text) {
+        if (!text) return "";
+        const div = document.createElement("div");
+        div.innerText = text;
+        return div.innerHTML;
+    }
+
+    function eliminarFilaDom(id) {
+        const fila = document.getElementById(`fila-${id}`);
+        if (fila) {
+            fila.classList.add("table-danger");
+            setTimeout(() => {
+                fila.remove();
+                const tbody = document.getElementById("cuerpo-tabla");
+                if (tbody && tbody.children.length === 0) {
+                    document.getElementById("alerta-vacia")?.classList.remove("d-none");
+                    document.getElementById("contenedor-tabla")?.classList.add("d-none");
+                }
+            }, 400);
+        }
+    }
+
+    function conectarWebSocket() {
+        if (!pieHostChannelUrl || pieHostChannelUrl.includes("YOUR_PIEHOST")) {
+            actualizarBadgeStatus("warning", "WebSocket: Simulado (Local)", "warning");
+            console.warn("[PieHost WS] URL no configurada en appsettings o variables de entorno. Modo local.");
+            return;
+        }
+
+        try {
+            const wsUrl = pieHostApiKey 
+                ? `${pieHostChannelUrl}?apiKey=${encodeURIComponent(pieHostApiKey)}`
+                : pieHostChannelUrl;
+
+            socket = new WebSocket(wsUrl);
+
+            socket.onopen = () => {
+                console.log("[PieHost WS] Conectado a canal PieHost.");
+                actualizarBadgeStatus("online", "● WebSocket En Vivo", "success");
+                // Al reconectar el WebSocket (evento onopen), vuelve a consultar el estado vigente
+                refrescarListadoVigente();
+            };
+
+            socket.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    console.log("[PieHost WS] Evento recibido:", data);
+
+                    if (data.event === "IncidenciaActualizada" || data.estado === "Cerrada") {
+                        eliminarFilaDom(data.id);
+                    }
+                } catch (err) {
+                    console.error("[PieHost WS] Error al parsear mensaje WS:", err);
+                }
+            };
+
+            socket.onerror = (err) => {
+                console.warn("[PieHost WS] Error en WebSocket:", err);
+                actualizarBadgeStatus("error", "WebSocket: Error", "danger");
+            };
+
+            socket.onclose = () => {
+                console.warn("[PieHost WS] Conexión cerrada. Reconectando en 3s...");
+                actualizarBadgeStatus("reconnecting", "WebSocket: Reconectando...", "secondary");
+                setTimeout(conectarWebSocket, reconnectInterval);
+            };
+        } catch (e) {
+            console.error("[PieHost WS] Excepción al inicializar WebSocket:", e);
+            actualizarBadgeStatus("error", "WebSocket: Offline", "danger");
+        }
+    }
+
+    function confirmarCierre(event, id) {
+        if (!confirm(`¿Cerrar incidencia #${id}?`)) {
+            event.preventDefault();
+            return false;
+        }
+        return true;
+    }
+
+    document.addEventListener("DOMContentLoaded", conectarWebSocket);
+</script>
+}

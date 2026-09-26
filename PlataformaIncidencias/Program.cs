@@ -26,6 +26,8 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options =>
 
 // ── MVC ──────────────────────────────────────────────────────────────────────
 builder.Services.AddControllersWithViews();
+builder.Services.AddHttpClient();
+builder.Services.AddSingleton<PlataformaIncidencias.Services.PieHostService>();
 
 var app = builder.Build();
 
