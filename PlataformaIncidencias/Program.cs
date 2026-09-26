@@ -27,6 +27,13 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options =>
 // ── MVC ──────────────────────────────────────────────────────────────────────
 builder.Services.AddControllersWithViews();
 
+// ── Redis Cache (IDistributedCache con StackExchange.Redis) ───────────────────
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379";
+    options.InstanceName = "Incidencias_";
+});
+
 var app = builder.Build();
 
 // ── Seed: migraciones + usuario supervisor ───────────────────────────────────
