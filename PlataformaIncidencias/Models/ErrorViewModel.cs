@@ -1,4 +1,4 @@
-namespace PlataformaCreditos.Models;
+namespace PlataformaIncidencias.Models;
 
 public class ErrorViewModel
 {

@@ -1,7 +1,7 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
-namespace PlataformaCreditos.Data.Migrations
+namespace PlataformaIncidencias.Data.Migrations
 {
     public partial class CreateIdentitySchema : Migration
     {

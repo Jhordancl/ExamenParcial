@@ -1,8 +1,8 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
-using PlataformaCreditos.Models;
+using PlataformaIncidencias.Models;
 
-namespace PlataformaCreditos.Controllers;
+namespace PlataformaIncidencias.Controllers;
 
 public class HomeController : Controller
 {

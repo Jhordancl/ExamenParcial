@@ -3,11 +3,11 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using PlataformaCreditos.Data;
+using PlataformaIncidencias.Data;
 
 #nullable disable
 
-namespace PlataformaCreditos.Data.Migrations
+namespace PlataformaIncidencias.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
     partial class ApplicationDbContextModelSnapshot : ModelSnapshot
@@ -213,56 +213,108 @@ namespace PlataformaCreditos.Data.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("PlataformaCreditos.Models.Cliente", b =>
+            modelBuilder.Entity("PlataformaIncidencias.Models.Incidencia", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<bool>("Activo")
-                        .HasColumnType("INTEGER");
+                    b.Property<string>("Descripcion")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
 
-                    b.Property<decimal>("IngresosMensuales")
-                        .HasColumnType("decimal(18,2)");
+                    b.Property<string>("Estacion")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
 
-                    b.Property<string>("UsuarioId")
+                    b.Property<string>("Estado")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("FechaCreacion")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Prioridad")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
-                    b.ToTable("Clientes");
-                });
+                    b.ToTable("Incidencias");
 
-            modelBuilder.Entity("PlataformaCreditos.Models.SolicitudCredito", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("ClienteId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Estado")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("FechaSolicitud")
-                        .HasColumnType("TEXT");
-
-                    b.Property<decimal>("MontoSolicitado")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("MotivoRechazo")
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ClienteId")
-                        .IsUnique()
-                        .HasFilter("\"Estado\" = 0");
-
-                    b.ToTable("Solicitudes");
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Descripcion = "Bicicleta con freno delantero roto",
+                            Estacion = "Estación Central",
+                            Estado = "Abierta",
+                            FechaCreacion = new DateTime(2025, 1, 10, 8, 0, 0, 0, DateTimeKind.Utc),
+                            Prioridad = "Alta"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Descripcion = "Candado bloqueado, no libera bicicleta",
+                            Estacion = "Estación Norte",
+                            Estado = "Abierta",
+                            FechaCreacion = new DateTime(2025, 1, 10, 9, 0, 0, 0, DateTimeKind.Utc),
+                            Prioridad = "Alta"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Descripcion = "Panel solar del dock sin carga",
+                            Estacion = "Estación Sur",
+                            Estado = "Abierta",
+                            FechaCreacion = new DateTime(2025, 1, 11, 10, 0, 0, 0, DateTimeKind.Utc),
+                            Prioridad = "Media"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Descripcion = "Rueda trasera pinchada en bicicleta #42",
+                            Estacion = "Estación Este",
+                            Estado = "Abierta",
+                            FechaCreacion = new DateTime(2025, 1, 11, 11, 0, 0, 0, DateTimeKind.Utc),
+                            Prioridad = "Alta"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Descripcion = "Pantalla del kiosco no responde al tacto",
+                            Estacion = "Estación Oeste",
+                            Estado = "Abierta",
+                            FechaCreacion = new DateTime(2025, 1, 12, 8, 30, 0, 0, DateTimeKind.Utc),
+                            Prioridad = "Media"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Descripcion = "Sillín roto en bicicleta #17",
+                            Estacion = "Estación Central",
+                            Estado = "Cerrada",
+                            FechaCreacion = new DateTime(2025, 1, 9, 15, 0, 0, 0, DateTimeKind.Utc),
+                            Prioridad = "Baja"
+                        },
+                        new
+                        {
+                            Id = 7,
+                            Descripcion = "Luz delantera no funciona en bicicleta #5",
+                            Estacion = "Estación Norte",
+                            Estado = "Cerrada",
+                            FechaCreacion = new DateTime(2025, 1, 9, 16, 0, 0, 0, DateTimeKind.Utc),
+                            Prioridad = "Baja"
+                        },
+                        new
+                        {
+                            Id = 8,
+                            Descripcion = "Conector de carga dañado en dock #3",
+                            Estacion = "Estación Sur",
+                            Estado = "Abierta",
+                            FechaCreacion = new DateTime(2025, 1, 13, 9, 0, 0, 0, DateTimeKind.Utc),
+                            Prioridad = "Media"
+                        });
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -314,22 +366,6 @@ namespace PlataformaCreditos.Data.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("PlataformaCreditos.Models.SolicitudCredito", b =>
-                {
-                    b.HasOne("PlataformaCreditos.Models.Cliente", "Cliente")
-                        .WithMany("Solicitudes")
-                        .HasForeignKey("ClienteId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Cliente");
-                });
-
-            modelBuilder.Entity("PlataformaCreditos.Models.Cliente", b =>
-                {
-                    b.Navigation("Solicitudes");
                 });
 #pragma warning restore 612, 618
         }

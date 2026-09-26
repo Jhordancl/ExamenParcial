@@ -4,7 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <UserSecretsId>aspnet-PlataformaCreditos-d380a286-d431-481a-b914-6039001937d2</UserSecretsId>
+    <UserSecretsId>aspnet-PlataformaIncidencias-222da9fc-22f7-4766-9dde-c296f1f74e90</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -12,6 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Algolia.Search" Version="7.8.0" />
     <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="8.0.31" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.31" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="8.0.31" />
@@ -21,6 +22,7 @@
     </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.31" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.31" />
+    <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="8.0.0" />
   </ItemGroup>
 
 </Project>
