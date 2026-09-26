@@ -27,6 +27,9 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options =>
 // ── MVC ──────────────────────────────────────────────────────────────────────
 builder.Services.AddControllersWithViews();
 
+// ── Algolia (server-side, AdminKey nunca expuesta al cliente) ─────────────────
+builder.Services.AddSingleton<PlataformaIncidencias.Services.AlgoliaSearchService>();
+
 var app = builder.Build();
 
 // ── Seed: migraciones + usuario supervisor ───────────────────────────────────
