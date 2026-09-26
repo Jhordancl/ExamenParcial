@@ -2,16 +2,48 @@
 
 @{
     ViewData["Title"] = "Incidencias Abiertas";
+    var query = ViewBag.Query as string ?? string.Empty;
 }
 
 <div class="container mt-4">
-    <h1>Incidencias abiertas con consulta rápida</h1>
-    <p class="text-muted">Listado de averías activas en estaciones de bicicletas compartidas (optimizado con caché Redis).</p>
+    <h1>Incidencias abiertas encontradas con consulta rápida</h1>
+    <p class="text-muted">Busca averías activas en estaciones con búsqueda directa e indexada y listado rápido optimizado con caché Redis.</p>
+
+    @* Formulario de búsqueda *@
+    <form asp-controller="Operaciones" asp-action="Incidencias" method="get" class="mb-4">
+        <div class="input-group">
+            <input type="text" name="q" value="@query" class="form-control"
+                   placeholder="Buscar por estación o descripción..." />
+            <button class="btn btn-primary" type="submit">
+                🔍 Buscar
+            </button>
+            @if (!string.IsNullOrWhiteSpace(query))
+            {
+                <a asp-controller="Operaciones" asp-action="Incidencias" class="btn btn-outline-secondary">
+                    ✕ Limpiar
+                </a>
+            }
+        </div>
+        @if (!string.IsNullOrWhiteSpace(query))
+        {
+            <small class="text-muted mt-1 d-block">
+                Mostrando resultados de Algolia para: <strong>@query</strong>
+            </small>
+        }
+    </form>
 
     @if (!Model.Any())
     {
         <div class="alert alert-success">
-            <i class="bi bi-check-circle"></i> No hay incidencias abiertas en este momento.
+            <i class="bi bi-check-circle"></i>
+            @if (string.IsNullOrWhiteSpace(query))
+            {
+                <span>No hay incidencias abiertas en este momento.</span>
+            }
+            else
+            {
+                <span>No se encontraron incidencias abiertas para "<strong>@query</strong>".</span>
+            }
         </div>
     }
     else
@@ -52,7 +84,7 @@
                                     @Html.AntiForgeryToken()
                                     <button type="submit" class="btn btn-sm btn-outline-danger"
                                             onclick="return confirm('¿Cerrar incidencia #@item.Id?')">
-                                        <i class="bi bi-x-circle"></i> Cerrar
+                                        ✕ Cerrar
                                     </button>
                                 </form>
                             </td>

@@ -34,6 +34,9 @@ builder.Services.AddStackExchangeRedisCache(options =>
     options.InstanceName = "Incidencias_";
 });
 
+// ── Algolia (server-side, AdminKey nunca expuesta al cliente) ─────────────────
+builder.Services.AddSingleton<PlataformaIncidencias.Services.AlgoliaSearchService>();
+
 var app = builder.Build();
 
 // ── Seed: migraciones + usuario supervisor ───────────────────────────────────

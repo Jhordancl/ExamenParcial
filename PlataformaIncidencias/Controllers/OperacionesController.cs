@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using PlataformaIncidencias.Data;
 using PlataformaIncidencias.Models;
+using PlataformaIncidencias.Services;
 
 namespace PlataformaIncidencias.Controllers;
 
@@ -13,38 +14,43 @@ public class OperacionesController : Controller
 {
     private readonly ApplicationDbContext _db;
     private readonly IDistributedCache _cache;
+    private readonly AlgoliaSearchService _algolia;
     private readonly ILogger<OperacionesController> _logger;
     private const string CacheKeyListado = "incidencias_abiertas_listado";
 
     public OperacionesController(
         ApplicationDbContext db,
         IDistributedCache cache,
+        AlgoliaSearchService algolia,
         ILogger<OperacionesController> logger)
     {
         _db = db;
         _cache = cache;
+        _algolia = algolia;
         _logger = logger;
     }
 
-    // GET /Operaciones/Incidencias
+    // GET /Operaciones/Incidencias?q=texto
     public async Task<IActionResult> Incidencias(string? q)
     {
         ViewBag.Query = q;
 
-        // La búsqueda por texto NO pasa por caché, se consulta siempre en directo
+        // La búsqueda por texto de Algolia NO debe pasar por esta caché, se consulta siempre en directo
         if (!string.IsNullOrWhiteSpace(q))
         {
-            _logger.LogInformation("Búsqueda con query='{Q}' solicitada. Omitiendo caché de Redis y consultando en directo.", q);
+            _logger.LogInformation("Búsqueda Algolia con query='{Q}'. Omitiendo caché de Redis y consultando en directo.", q);
+            var ids = await _algolia.BuscarIdsAsync(q);
+
             var resultados = await _db.Incidencias
-                .Where(i => i.Estado == "Abierta" && (i.Estacion.Contains(q) || i.Descripcion.Contains(q)))
+                .Where(i => ids.Contains(i.Id) && i.Estado == "Abierta")
                 .OrderByDescending(i => i.FechaCreacion)
                 .ToListAsync();
 
-            _logger.LogInformation("Lectura realizada desde BASE DE DATOS (búsqueda directa): {Count} resultados.", resultados.Count);
+            _logger.LogInformation("Algolia+DB (consulta directa sin caché): {Count} incidencias abiertas para query='{Q}'.", resultados.Count, q);
             return View(resultados);
         }
 
-        // Listado general: Intentar leer desde Redis (caché por 60 segundos)
+        // Listado general sin búsqueda: Cachear en Redis por 60 segundos
         List<Incidencia>? incidencias = null;
 
         try
