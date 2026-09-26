@@ -29,6 +29,16 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddHttpClient();
 builder.Services.AddSingleton<PlataformaIncidencias.Services.PieHostService>();
 
+// ── Redis Cache (IDistributedCache con StackExchange.Redis) ───────────────────
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379";
+    options.InstanceName = "Incidencias_";
+});
+
+// ── Algolia (server-side, AdminKey nunca expuesta al cliente) ─────────────────
+builder.Services.AddSingleton<PlataformaIncidencias.Services.AlgoliaSearchService>();
+
 var app = builder.Build();
 
 // ── Seed: migraciones + usuario supervisor ───────────────────────────────────

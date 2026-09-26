@@ -3,22 +3,54 @@
 
 @{
     ViewData["Title"] = "Incidencias Abiertas";
+    var query = ViewBag.Query as string ?? string.Empty;
     var channelUrl = Configuration["PieHost:ChannelUrl"] ?? "";
     var channelKey = Configuration["PieHost:ChannelKey"] ?? "";
 }
 
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-2">
-        <h1>Incidencias abiertas en tiempo real</h1>
+        <h1>Incidencias abiertas encontradas en tiempo real con consulta rápida</h1>
         <span id="ws-status" class="badge bg-secondary">
             <span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>
             Conectando WebSocket...
         </span>
     </div>
-    <p class="text-muted">Averías activas en estaciones con sincronización en tiempo real vía PieHost.</p>
+    <p class="text-muted">Averías activas en estaciones: búsqueda indexada en Algolia, caché ultrarrápida en Redis y sincronización en tiempo real con PieHost.</p>
+
+    @* Formulario de búsqueda con Algolia *@
+    <form asp-controller="Operaciones" asp-action="Incidencias" method="get" class="mb-4">
+        <div class="input-group">
+            <input type="text" name="q" value="@query" class="form-control"
+                   placeholder="Buscar por estación o descripción..." />
+            <button class="btn btn-primary" type="submit">
+                🔍 Buscar
+            </button>
+            @if (!string.IsNullOrWhiteSpace(query))
+            {
+                <a asp-controller="Operaciones" asp-action="Incidencias" class="btn btn-outline-secondary">
+                    ✕ Limpiar
+                </a>
+            }
+        </div>
+        @if (!string.IsNullOrWhiteSpace(query))
+        {
+            <small class="text-muted mt-1 d-block">
+                Mostrando resultados de Algolia para: <strong>@query</strong>
+            </small>
+        }
+    </form>
 
     <div id="alerta-vacia" class="alert alert-success @(Model.Any() ? "d-none" : "")">
-        <i class="bi bi-check-circle"></i> No hay incidencias abiertas en este momento.
+        <i class="bi bi-check-circle"></i>
+        @if (string.IsNullOrWhiteSpace(query))
+        {
+            <span>No hay incidencias abiertas en este momento.</span>
+        }
+        else
+        {
+            <span>No se encontraron incidencias abiertas para "<strong>@query</strong>".</span>
+        }
     </div>
 
     <div class="table-responsive @(!Model.Any() ? "d-none" : "")" id="contenedor-tabla">
